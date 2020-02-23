@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Program.cs" />
+    <Content Include="Parallel\ParallelInvocation.cs" />
+    <Content Include="Parallel\ParallelProcessData.cs" />
+    <Content Include="Async\AnyTaskToComplete.cs" />
+    <Content Include="Async\MultipleTaskToComplete.cs" />
+    <Content Include="Async\SynchronouswithAsychronous.cs" />
+    <Content Include="Async\ProgressReport.cs" />
+    <Content Include="Async\Throttling.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.11.0" />
+    <Content Include="Dataflow\LinkingBlocks.cs" />
+  </ItemGroup>
+</Project>
