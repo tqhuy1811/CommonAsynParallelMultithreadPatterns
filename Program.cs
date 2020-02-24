@@ -8,9 +8,11 @@ namespace random
 	{
 		private static async Task Main(string[] args)
 		{
-			await LinkingBlocks.BatchBlockNonGreedy();
+
+			await LinkingBlocks.JoinBlock();
+			//await LinkingBlocks.BatchBlockNonGreedy();
 			//await LinkingBlocks.Linking();
-			await LinkingBlocks.BroadCastBlock();
+			//await LinkingBlocks.BroadCastBlock();
 			Console.ReadLine();
 			//await ProgressReport.CallMyMethodAsync();
 			// System.Console.WriteLine("heere");
