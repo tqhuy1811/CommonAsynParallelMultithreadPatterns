@@ -5,139 +5,195 @@ using System.Threading.Tasks.Dataflow;
 
 namespace CommonPatterns
 {
-  /*
-		You need to link dataflow into each other to create a mesh
-	*/
-  public class LinkingBlocks
-  {
+	public class LinkingBlocks
+	{
+		public async static Task JoinBlockGreedy()
+		{
+			var producer1 = new BufferBlock<int>();
+			var producer2 = new BufferBlock<int>();
 
-    public async static Task JoinBlock()
-    {
-      var joinBlock = new JoinBlock<int, int>(new GroupingDataflowBlockOptions {
-				Greedy = false
-			});
-			var actionBlock = new ActionBlock<Tuple<int,int>>(item => System.Console.WriteLine(item));
-			var bufferLockA = new BufferBlock<int>();
-			var bufferLockB = new BufferBlock<int>();
+			var joinBlock = new JoinBlock<int, int>();
 
-			bufferLockA.LinkTo(joinBlock.Target1, new DataflowLinkOptions {
-				PropagateCompletion = true
-			});
-			bufferLockB.LinkTo(joinBlock.Target2, new DataflowLinkOptions {
-				PropagateCompletion = true
-			});
-		
-			joinBlock.LinkTo(actionBlock, new DataflowLinkOptions {
+			var actionBlock = new ActionBlock<Tuple<int, int>>(item => System.Console.WriteLine(item));
+
+			producer1.LinkTo(joinBlock.Target1, new DataflowLinkOptions
+			{
 				PropagateCompletion = true
 			});
 
-			bufferLockA.Post(2);
-			bufferLockB.Post(3);
+			producer2.LinkTo(joinBlock.Target2, new DataflowLinkOptions
+			{
+				PropagateCompletion = true
+			});
 
-			bufferLockA.Complete();
+			joinBlock.LinkTo(actionBlock, new DataflowLinkOptions
+			{
+				PropagateCompletion = true
+			});
+
+			producer1.Post(1);
+			producer2.Post(5);
+			producer1.Post(2);
+			producer2.Post(2);
+
+			producer1.Complete();
+
+			// In Greedy mode, the join block will still accept the message but it's not going to show any output because,
+			//producer1.Post(2);
+			//producer1.Post(2);
+			//producer1.Post(2);
+
+			await actionBlock.Completion;
+		}
+
+		public async static Task JoinBlockNonGreedy()
+		{
+			var producer1 = new BufferBlock<int>();
+			var producer2 = new BufferBlock<int>();
+
+			var joinBlock = new JoinBlock<int, int>(new GroupingDataflowBlockOptions
+			{
+				Greedy = false // because this non greedy
+			});
+
+			// this line will never be execute
+			var actionBlock = new ActionBlock<Tuple<int, int>>(item => System.Console.WriteLine(item));
+
+			var actionBlockB = new ActionBlock<int>(item => Console.WriteLine(item));
+
+			producer1.LinkTo(joinBlock.Target1, new DataflowLinkOptions
+			{
+				PropagateCompletion = true
+			});
+			producer2.LinkTo(joinBlock.Target2, new DataflowLinkOptions
+			{
+				PropagateCompletion = true
+			});
+
+			joinBlock.LinkTo(actionBlock, new DataflowLinkOptions
+			{
+				PropagateCompletion = true
+			});
+
+			//this action block will suck up all the data before join block has a chance
+			producer1.LinkTo(actionBlockB, new DataflowLinkOptions
+			{
+				PropagateCompletion = true
+			});
+
+			producer1.Post(1);
+			producer2.Post(5);
+			producer1.Post(2);
+			producer2.Post(2);
+
+			producer1.Post(3); // In non greedymode,the joinblock will postpone receiving this message
+
+			//producer1.Complete();
+			//joinBlock.Complete();
 
 			await actionBlock.Completion;
 
 			System.Console.WriteLine("done");
-    }
-    public static void BatchBlock()
-    {
-      var batchBlock = new BatchBlock<int>(10);
+		}
 
-      for (int i = 0; i < 13; i++)
-      {
-        batchBlock.Post(i);
-      }
+		public static void BatchBlock()
+		{
+			var batchBlock = new BatchBlock<int>(10);
 
-      batchBlock.Complete();
+			for (int i = 0; i < 13; i++)
+			{
+				batchBlock.Post(i);
+			}
 
-      System.Console.WriteLine(batchBlock.Receive().Sum());
-      System.Console.WriteLine(batchBlock.Receive().Sum());
-    }
+			batchBlock.Complete();
 
-    public static async Task BatchBlockNonGreedy()
-    {
-      var inputBuffer = new BufferBlock<int>();
+			System.Console.WriteLine(batchBlock.Receive().Sum());
+			System.Console.WriteLine(batchBlock.Receive().Sum());
+		}
 
-      // because we have batch size of 10 and using Non Greedy mode => we need 10 different sources to for BatchBlock to consume all of the messages
-      var batchBlock = new BatchBlock<int>(10, new GroupingDataflowBlockOptions
-      {
-        Greedy = false
-      });
+		public static async Task BatchBlockNonGreedy()
+		{
+			var inputBuffer = new BufferBlock<int>();
 
-      inputBuffer.LinkTo(batchBlock, new DataflowLinkOptions
-      {
-        PropagateCompletion = true
-      });
+			// because we have batch size of 10 and using Non Greedy mode => we need 10 different sources to for BatchBlock to consume all of the messages
+			var batchBlock = new BatchBlock<int>(10, new GroupingDataflowBlockOptions
+			{
+				Greedy = false
+			});
 
-      for (int i = 0; i < 9; i++)
-      {
-        inputBuffer.Post(i);
-      }
+			inputBuffer.LinkTo(batchBlock, new DataflowLinkOptions
+			{
+				PropagateCompletion = true
+			});
 
-      inputBuffer.Complete();
+			for (int i = 0; i < 9; i++)
+			{
+				inputBuffer.Post(i);
+			}
 
-      await batchBlock.Completion;
+			inputBuffer.Complete();
 
-      System.Console.WriteLine(batchBlock.Receive().Sum()); // this line is unreachable
-    }
+			await batchBlock.Completion;
 
-    public static async Task BroadCastBlock()
-    {
-      var broadcastBlock = new BroadcastBlock<double>(val =>
-      {
-        return val * 2;
-      });
+			System.Console.WriteLine(batchBlock.Receive().Sum()); // this line is unreachable
+		}
 
-      var actionBlock = new ActionBlock<double>(val =>
-      {
-        System.Console.WriteLine(val);
-      });
+		public static async Task BroadCastBlock()
+		{
+			var broadcastBlock = new BroadcastBlock<double>(val =>
+			{
+				return val * 2;
+			});
 
-      broadcastBlock.LinkTo(actionBlock, new DataflowLinkOptions
-      {
-        PropagateCompletion = true
-      });
+			var actionBlock = new ActionBlock<double>(val =>
+			{
+				System.Console.WriteLine(val);
+			});
 
-      broadcastBlock.Post(10);
-      broadcastBlock.Post(20);
-      broadcastBlock.Post(30);
+			broadcastBlock.LinkTo(actionBlock, new DataflowLinkOptions
+			{
+				PropagateCompletion = true
+			});
 
-      broadcastBlock.Complete();
-      await actionBlock.Completion;
-      System.Console.WriteLine("Done");
-    }
+			broadcastBlock.Post(10);
+			broadcastBlock.Post(20);
+			broadcastBlock.Post(30);
 
-    public async static Task Linking()
-    {
-      var multiplyBlock = new TransformBlock<int, int>(item => item * 2);
-      var subtractBlock = new TransformBlock<int, int>(item =>
-      {
-        return item - 2;
-      });
+			broadcastBlock.Complete();
+			await actionBlock.Completion;
+			System.Console.WriteLine("Done");
+		}
 
-      multiplyBlock.LinkTo(subtractBlock, new DataflowLinkOptions
-      {
-        PropagateCompletion = true
-      });
+		public async static Task Linking()
+		{
+			var multiplyBlock = new TransformBlock<int, int>(item => item * 2);
+			var subtractBlock = new TransformBlock<int, int>(item =>
+			{
+				return item - 2;
+			});
 
-      foreach (var item in Enumerable.Repeat(1, 10).ToArray())
-      {
-        multiplyBlock.Post(item);
-      }
+			multiplyBlock.LinkTo(subtractBlock, new DataflowLinkOptions
+			{
+				PropagateCompletion = true
+			});
 
-      multiplyBlock.Complete();
-      /*
-			  Microsoft documentation is kinda misleading about waiting for the final block to complete
-			  whether a block is completed or not depends on the type of the block
-			  TransformBlock needs 3 conditions
-			  1/ TransformBlock.Complete() has been called
-			  2/ InputCount == 0 the block has applied its transformation to every incoming element
-			  3/ Outputcount == 0 all transformed elements have left the output buffer
-			*/
-      await subtractBlock.Completion;
+			foreach (var item in Enumerable.Repeat(1, 10).ToArray())
+			{
+				multiplyBlock.Post(item);
+			}
 
-      System.Console.WriteLine("Done"); // this part is unreachable
-    }
-  }
+			multiplyBlock.Complete();
+			/*
+					Microsoft documentation is kinda misleading about waiting for the final block to complete
+					whether a block is completed or not depends on the type of the block
+					TransformBlock needs 3 conditions
+					1/ TransformBlock.Complete() has been called
+					2/ InputCount == 0 the block has applied its transformation to every incoming element
+					3/ Outputcount == 0 all transformed elements have left the output buffer
+				  */
+			await subtractBlock.Completion;
+
+			System.Console.WriteLine("Done"); // this part is unreachable
+		}
+	}
 }

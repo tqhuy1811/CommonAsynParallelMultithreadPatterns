@@ -8,8 +8,7 @@ namespace random
 	{
 		private static async Task Main(string[] args)
 		{
-
-			await LinkingBlocks.JoinBlock();
+			await LinkingBlocks.JoinBlockGreedy();
 			//await LinkingBlocks.BatchBlockNonGreedy();
 			//await LinkingBlocks.Linking();
 			//await LinkingBlocks.BroadCastBlock();
