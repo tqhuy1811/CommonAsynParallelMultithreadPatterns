@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -73,6 +76,7 @@ namespace random.Synchronization
             _value = 13;
             _initialized.Set();
         }
+
         // or reset the event to an unsignaled state
         public void ResetFromAnotherThread()
         {
@@ -84,6 +88,31 @@ namespace random.Synchronization
         {
             _initialized.Wait();
             return _value;
+        }
+    }
+
+    /*
+     * Throttling request
+     */
+    public class Throttling
+    {
+        public async Task<string[]> DownloadUrlsAsync(IEnumerable<string> urls)
+        {
+            var httpClient = new HttpClient();
+            var semaphore = new SemaphoreSlim(10);
+            var tasks = urls.Select(async url =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    return await httpClient.GetStringAsync(url);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }).ToArray();
+            return await Task.WhenAll(tasks);
         }
     }
 }
