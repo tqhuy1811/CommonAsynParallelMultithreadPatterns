@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using CommonPatterns;
+using random.ValueTask;
 
 namespace random
 {
@@ -8,15 +10,11 @@ namespace random
 	{
 		private static async Task Main(string[] args)
 		{
-			await LinkingBlocks.JoinBlockGreedy();
-			//await LinkingBlocks.BatchBlockNonGreedy();
-			//await LinkingBlocks.Linking();
-			//await LinkingBlocks.BroadCastBlock();
-			Console.ReadLine();
-			//await ProgressReport.CallMyMethodAsync();
-			// System.Console.WriteLine("heere");
-			// await Task.Delay(5);
-			// System.Console.WriteLine("end");
+			var valueTask = new ValueTaskBestPractices();
+			var result = await valueTask.TestValueTask();
+			//var result1 = await valueTask.TestValueTask();
+			Console.WriteLine(result);
+			//Console.WriteLine(result1);
 		}
 	}
 }
