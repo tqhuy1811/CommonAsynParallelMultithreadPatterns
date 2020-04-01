@@ -60,15 +60,18 @@ namespace random.ValueTask
 		public async Task TestValueTask2()
 		{
 			var result = await TestValueTask3(); // Good
-			var result2 = await TestValueTask3().AsTask(); // Good
+			var result2 = await TestValueTask3().AsTask(); // Good, Covert to task
 			
 			
-			// Really bad, because value task could be reuse by then and it could represent a diffenrent state
+			// Really bad, because value task could be reuse by then and it could represent a different state
+			// Also don't use Task.WhenAll or Task.WhenAny, if there's a need for it then should convert to Task
 			var result3 = await TestValueTask3();
 			var result4 = await TestValueTask3();
 			
 			// Don't block more info on https://blog.stephencleary.com/2020/03/valuetask.html
 			var result5 = TestValueTask3().Result;
+			
+			
 			
 		}
 		
